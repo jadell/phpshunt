@@ -47,6 +47,25 @@ class ShuntMethodTest extends PHPUnit_Framework_TestCase
 		self::assertEquals($sExpected, $sResult, 'Shunt method declaration code matches expected.');
 	}
 
+	public function testGetDeclarationCode_Constructor_ReturnsFactoryMethod()
+	{
+		eval("class {$this->sTestClass}{ protected function __construct(\$arg0=false){} }");
+		$oMethodShunt = new ShuntMethod($this->sTestClass, '__construct');
+
+		$sParams = $oMethodShunt->getParameterDeclarations(true);
+		$sSignature = "public static function __constructShunt";
+		$sCode = <<< EOT
+{
+	return new {$this->sTestClass}Shunt({$sParams});
+}
+EOT;
+
+		$sExpected = "{$sSignature}({$sParams}){$sCode}";
+
+		$sResult = $oMethodShunt->getDeclarationCode();
+		self::assertEquals($sExpected, $sResult, 'Shunt method declaration code matches expected.');
+	}
+
 	// getMethodCode()
 	public function testGetMethodCode_ReturnsCorrectCode()
 	{
