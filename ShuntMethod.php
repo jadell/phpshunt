@@ -35,8 +35,18 @@ class ShuntMethod extends ReflectionMethod
 	public function getDeclarationCode()
 	{
 		$sParamDeclarations = $this->getParameterDeclarations(true);
-		$sMethodSignature = $this->getMethodSignature();
-		$sMethodCode = $this->getMethodCode();
+		
+		if ($this->getName() == '__constructShunt') {
+			$sMethodSignature = "public static function __constructShunt";
+			$sMethodCode = <<< EOT
+{
+	return new {$this->sRequestedClass}Shunt({$sParamDeclarations});
+}
+EOT;
+		} else {
+			$sMethodSignature = $this->getMethodSignature();
+			$sMethodCode = $this->getMethodCode();
+		}
 
 		$sMethodDeclaration = "{$sMethodSignature}({$sParamDeclarations}){$sMethodCode}";
 		return $sMethodDeclaration;
