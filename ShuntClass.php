@@ -34,13 +34,20 @@ class ShuntClass extends ReflectionClass
 	 */
 	public function getDeclarationCode()
 	{
-		$sClassName = $this->getNameBeingShunted();
-		$sShuntClassName = $this->getName();
+		$sOriginalClassName = $this->getNameBeingShunted();
+		$sClassNamespace    = $this->getNamespace();
+		$sShuntClassName    = $this->getName($sClassNamespace);
+		if ($sClassNamespace) {
+			// Strip off the namespace
+			$sClassName = substr($sOriginalClassName, strlen($sClassNamespace)+1);
+		} else {
+			$sClassName = $sOriginalClassName;
+		}
 
 		$aMethodCodes = array();
 
 		foreach ($this->getMethods() as $oMethod) {
-			$oMethod = new ShuntMethod($sClassName, $oMethod->getName());
+			$oMethod = new ShuntMethod($sOriginalClassName, $oMethod->getName());
 
 			if ($oMethod->isShuntable()) {
 				$aMethodCodes[] = $oMethod->getDeclarationCode();
@@ -48,7 +55,13 @@ class ShuntClass extends ReflectionClass
 		}
 		$sMethods = implode('', $aMethodCodes);
 
+		if ($sClassNamespace) {
+			$sNamespaceDefinition = "namespace {$sClassNamespace};";
+		} else {
+			$sNamespaceDefinition = '';
+		}
 		$sClassDefinition = <<<EOT
+{$sNamespaceDefinition}
 class {$sShuntClassName} extends {$sClassName}
 {
 	static public function _shuntGetStatic(\$sPropertyName)
@@ -82,13 +95,32 @@ EOT;
 
 	/**
 	 * Return the shunt class name for the set class
+	 * @param string $sNamespace The namespace of the shunted class
 	 */
-	public function getName()
+	public function getName($sNamespace=false)
 	{
 		$sClassName = $this->getNameBeingShunted();
+		if ($sNamespace) {
+			// Strip off the namespace
+			$sClassName = substr($sClassName, strlen($sNamespace)+1);
+		}
 		$sShuntClassName = self::ClassPrefix . $sClassName . self::ClassSuffix;
 
 		return $sShuntClassName;
+	}
+
+	/**
+	 * Return the namespace for the shunt class, or False if none
+	 */
+	public function getNamespace() {
+		$sClassName = $this->getNameBeingShunted();
+		$sWithoutNamespace = strrchr($sClassName, '\\');
+		if ($sWithoutNamespace === false) {
+			return false;
+		} else {
+			// Strip off class name
+			return substr($sClassName, 0, -strlen($sWithoutNamespace));
+		}
 	}
 
 	/**
@@ -99,4 +131,3 @@ EOT;
 		return parent::getName();
 	}
 }
-?>
